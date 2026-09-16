@@ -8,6 +8,7 @@ local install = require("strict-ime.install")
 
 local started = false
 local shutting_down = false
+local focused = true
 local previous_key
 local previous_strict
 local prior = {}
@@ -62,7 +63,7 @@ local function set_imname(imname, force)
 end
 
 local function sync_mode(force)
-  if not started then
+  if not started or not focused then
     return
   end
 
@@ -236,6 +237,7 @@ function M.setup(opts)
   previous_key = nil
   previous_strict = nil
   shutting_down = false
+  focused = true
   fallback.stop()
   helper.stop()
 
@@ -251,10 +253,32 @@ function M.setup(opts)
       end,
     })
   end
+  vim.api.nvim_create_autocmd("FocusLost", {
+    group = group,
+    callback = function()
+      focused = false
+      if helper.active() then
+        helper.set_strict(false)
+      else
+        fallback.set_strict(false)
+      end
+      previous_strict = false
+    end,
+  })
+  vim.api.nvim_create_autocmd("FocusGained", {
+    group = group,
+    callback = function()
+      focused = true
+      vim.schedule(function()
+        sync_mode(true)
+      end)
+    end,
+  })
   vim.api.nvim_create_autocmd("VimLeavePre", {
     group = group,
     callback = function()
       shutting_down = true
+      focused = false
       helper.stop()
       fallback.stop()
     end,
@@ -269,12 +293,14 @@ end
 
 function M.enable()
   started = true
+  focused = true
   config.values.auto_start = true
   restart_helper()
 end
 
 function M.disable()
   started = false
+  focused = false
   helper.stop()
   fallback.stop()
 end

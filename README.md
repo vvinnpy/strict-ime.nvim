@@ -114,6 +114,10 @@ When `legacy_commands` is enabled, the following aliases are also available:
 
 Existing configurations that call `require("fcitx5").setup({...})` can keep that API while using this repository. The compatibility module maps the old setup options and `Fcitx5*` functions to `strict-ime`.
 
+## Focus handling
+
+The plugin pauses strict enforcement when Neovim loses focus, so Fcitx remains available to other applications. Focus events require terminal focus reporting; in tmux, use `set -g focus-events on`.
+
 ## Performance
 
 The helper maintains one Fcitx5 D-Bus connection and checks `State()` only while strict mode is active. It does not spawn a process on every poll.

@@ -26,6 +26,27 @@ local function current_imname()
   return name ~= "" and name or nil
 end
 
+local function current_input_state()
+  local imname = current_imname()
+  if not imname then
+    return nil
+  end
+
+  local result = vim.system({ "fcitx5-remote" }, { text = true }):wait()
+  local active_state = result.code == 0 and vim.trim(result.stdout or "") == "2"
+  return { imname = imname, active = active_state }
+end
+
+local function normalize_state(state)
+  if type(state) == "table" then
+    return {
+      imname = state.imname,
+      active = state.active ~= false,
+    }
+  end
+  return { imname = state, active = true }
+end
+
 local function ensure_fcitx5()
   if not config.values.autostart_fcitx5 or vim.fn.executable("fcitx5") ~= 1 then
     return
@@ -37,29 +58,39 @@ local function ensure_fcitx5()
   end
 end
 
-local function is_strict(mode_key, target)
-  return config.values.strict_modes[mode_key] == true and target == config.values.english
+local function is_strict(mode_key)
+  return config.values.strict_modes[mode_key] == true
+end
+
+local function target_state(mode_key)
+  if is_strict(mode_key) then
+    return { imname = config.values.english, active = false }
+  end
+  if config.values.remember_prior and prior[mode_key] then
+    return normalize_state(prior[mode_key])
+  end
+  return { imname = config.values.imname[mode_key], active = true }
 end
 
 local function target_imname(mode_key)
-  if config.values.strict_modes[mode_key] == true then
-    return config.values.english
+  return target_state(mode_key).imname
+end
+
+local function set_input_state(state, force)
+  state = normalize_state(state)
+  if not state.imname then
+    return
   end
-  if config.values.remember_prior and prior[mode_key] then
-    return prior[mode_key]
+
+  if helper.active() then
+    helper.set_input(state, force)
+  else
+    fallback.set_input(state, force)
   end
-  return config.values.imname[mode_key]
 end
 
 local function set_imname(imname, force)
-  if not imname then
-    return
-  end
-  if helper.active() then
-    helper.set_im(imname, force)
-  else
-    fallback.set_im(imname, force)
-  end
+  set_input_state({ imname = imname, active = true }, force)
 end
 
 local function sync_mode(force)
@@ -74,14 +105,14 @@ local function sync_mode(force)
   end
 
   if config.values.remember_prior and previous_key and previous_key ~= mode_key then
-    local current_im = current_imname()
-    if current_im then
-      prior[previous_key] = current_im
+    local previous_state = current_input_state()
+    if previous_state then
+      prior[previous_key] = previous_state
     end
   end
 
-  local target = target_imname(mode_key)
-  local strict = is_strict(mode_key, target)
+  local target = target_state(mode_key)
+  local strict = is_strict(mode_key)
 
   if strict ~= previous_strict then
     if helper.active() then
@@ -95,10 +126,10 @@ local function sync_mode(force)
   end
 
   if not strict then
-    set_imname(target, force or previous_key ~= mode_key)
+    set_input_state(target, force or previous_key ~= mode_key)
   end
 
-  if config.values.remember_prior and target then
+  if config.values.remember_prior and target.imname then
     prior[mode_key] = target
   end
   previous_key = mode_key
@@ -110,9 +141,9 @@ local function restart_helper()
   if helper.start() then
     fallback.stop()
     previous_strict = nil
-    helper.set_strict(target_imname(previous_key or mode.key()) == config.values.english)
+    helper.set_strict(is_strict(previous_key or mode.key()))
   else
-    fallback.set_strict(true)
+    fallback.set_strict(is_strict(previous_key or mode.key()))
   end
   sync_mode(true)
 end
@@ -139,7 +170,7 @@ local function setup_commands()
     local mode_key = mode.current().key
     set_imname(opts.args, true)
     if config.values.remember_prior then
-      prior[mode_key] = opts.args
+      prior[mode_key] = { imname = opts.args, active = true }
     end
   end
 
@@ -154,8 +185,9 @@ local function setup_commands()
   local function cmd_set_prior(opts)
     local imname = opts.fargs[1]
     local mode_key = opts.fargs[2] or mode.current().key
-    prior[mode_key] = imname
-    notify(string.format("prior[%s]=%s", mode_key, imname))
+    local active = opts.fargs[3] ~= "inactive" and opts.fargs[3] ~= "false" and opts.fargs[3] ~= "0"
+    prior[mode_key] = { imname = imname, active = active }
+    notify(string.format("prior[%s]=%s active=%s", mode_key, imname, tostring(active)))
   end
 
   local function cmd_get_imname(opts)
@@ -199,11 +231,10 @@ local function setup_commands()
   end
 end
 
-
 M.Fcitx5SetName = function(imname)
   set_imname(imname, true)
   if config.values.remember_prior then
-    prior[mode.current().key] = imname
+    prior[mode.current().key] = { imname = imname, active = true }
   end
 end
 
@@ -215,8 +246,9 @@ M.Fcitx5OnModeChanged = function()
   sync_mode(false)
 end
 
-M.Fcitx5SetPrior = function(imname, mode_key)
-  prior[mode_key or mode.current().key] = imname
+M.Fcitx5SetPrior = function(imname, mode_key, active)
+  local key = mode_key or mode.current().key
+  prior[key] = { imname = imname, active = active ~= false }
 end
 
 M.Fcitx5GetImname = function(mode_key)

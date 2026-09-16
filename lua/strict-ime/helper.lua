@@ -8,7 +8,7 @@ local stdin, stdout, stderr
 local handle
 local active = false
 local last_strict = nil
-local last_im = nil
+local last_input_key = nil
 
 local function helper_path()
   local configured = config.values.helper.path
@@ -83,7 +83,7 @@ function M.start()
   handle = spawn_handle
   active = true
   last_strict = nil
-  last_im = nil
+  last_input_key = nil
   return true
 end
 
@@ -100,7 +100,7 @@ function M.stop()
   handle = nil
   close_pipes()
   last_strict = nil
-  last_im = nil
+  last_input_key = nil
 end
 
 function M.active()
@@ -115,12 +115,33 @@ function M.set_strict(strict)
   write({ cmd = "set_strict", value = strict })
 end
 
-function M.set_im(imname, force)
-  if not imname or (not force and last_im == imname) then
+local function normalize_state(state)
+  if type(state) == "table" then
+    return {
+      imname = state.imname,
+      active = state.active ~= false,
+    }
+  end
+  return { imname = state, active = true }
+end
+
+function M.set_input(state, force)
+  state = normalize_state(state)
+  if not state.imname then
     return
   end
-  last_im = imname
-  write({ cmd = "set_im", value = imname })
+
+  local key = state.imname .. ":" .. tostring(state.active)
+  if not force and last_input_key == key then
+    return
+  end
+
+  last_input_key = key
+  write({ cmd = "set_state", value = state })
+end
+
+function M.set_im(imname, force)
+  M.set_input({ imname = imname, active = true }, force)
 end
 
 return M

@@ -4,7 +4,7 @@ local M = {}
 local config = require("strict-ime.config")
 local timer
 local strict = false
-local last_im = nil
+local last_input_key = nil
 
 local function run(args)
   vim.system({ "fcitx5-remote", unpack(args) }, { text = true }, function() end)
@@ -26,12 +26,37 @@ function M.set_strict(value)
   end
 end
 
-function M.set_im(imname, force)
-  if not imname or (not force and last_im == imname) then
+local function normalize_state(state)
+  if type(state) == "table" then
+    return {
+      imname = state.imname,
+      active = state.active ~= false,
+    }
+  end
+  return { imname = state, active = true }
+end
+
+function M.set_input(state, force)
+  state = normalize_state(state)
+  if not state.imname then
     return
   end
-  last_im = imname
-  run({ "-s", imname })
+
+  local key = state.imname .. ":" .. tostring(state.active)
+  if not force and last_input_key == key then
+    return
+  end
+  last_input_key = key
+
+  vim.system({ "fcitx5-remote", "-s", state.imname }, { text = true }, function(result)
+    if result.code == 0 and not state.active then
+      vim.system({ "fcitx5-remote", "-c" }, { text = true }, function() end)
+    end
+  end)
+end
+
+function M.set_im(imname, force)
+  M.set_input({ imname = imname, active = true }, force)
 end
 
 function M.stop()

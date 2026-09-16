@@ -87,7 +87,7 @@ require("strict-ime").setup({
 - `insert`: fallback input method for Insert mode.
 - `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model.
 - `strict_modes`: modes where manual switching is forced back to English.
-- `remember_prior`: remember the input method used in each mode.
+- `remember_prior`: remember both the input method name and its active/inactive state for each mode.
 - `autostart_fcitx5`: start Fcitx5 if it is not already running.
 - `legacy_commands`: expose `Fcitx5*` compatibility commands.
 - `poll_interval`: D-Bus status check interval, in milliseconds.

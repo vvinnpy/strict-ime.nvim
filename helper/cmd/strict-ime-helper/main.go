@@ -28,6 +28,11 @@ type response struct {
 	Error string `json:"error,omitempty"`
 }
 
+type inputState struct {
+	Imname string `json:"imname"`
+	Active bool   `json:"active"`
+}
+
 type manager struct {
 	mu       sync.Mutex
 	conn     *dbus.Conn
@@ -84,13 +89,22 @@ func (m *manager) ensureEnglishLocked() error {
 	return nil
 }
 
-func (m *manager) setIM(imname string) error {
+func (m *manager) setInput(state inputState) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := m.connectLocked(); err != nil {
 		return err
 	}
-	if call := m.object.Call(iface+".SetCurrentIM", 0, imname); call.Err != nil {
+	if call := m.object.Call(iface+".SetCurrentIM", 0, state.Imname); call.Err != nil {
+		m.resetLocked()
+		return call.Err
+	}
+
+	method := iface + ".Activate"
+	if !state.Active {
+		method = iface + ".Deactivate"
+	}
+	if call := m.object.Call(method, 0); call.Err != nil {
 		m.resetLocked()
 		return call.Err
 	}
@@ -167,7 +181,14 @@ func main() {
 				writeResponse(false, err)
 				continue
 			}
-			writeResponse(true, m.setIM(imname))
+			writeResponse(true, m.setInput(inputState{Imname: imname, Active: true}))
+		case "set_state":
+			var state inputState
+			if err := json.Unmarshal(req.Value, &state); err != nil {
+				writeResponse(false, err)
+				continue
+			}
+			writeResponse(true, m.setInput(state))
 		case "quit":
 			return
 		default:

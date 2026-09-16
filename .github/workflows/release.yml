@@ -1,0 +1,39 @@
+name: Release helper
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: helper/go.sum
+
+      - name: Test helper
+        working-directory: helper
+        run: go test ./...
+
+      - name: Build Linux binaries
+        working-directory: helper
+        run: |
+          set -euo pipefail
+          mkdir -p ../dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o ../dist/strict-ime-helper-linux-amd64 ./cmd/strict-ime-helper
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o ../dist/strict-ime-helper-linux-arm64 ./cmd/strict-ime-helper
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/strict-ime-helper-linux-*

@@ -1,0 +1,5 @@
+.DS_Store
+/lazy-lock.json
+/doc/tags
+/helper/strict-ime-helper
+/dist/

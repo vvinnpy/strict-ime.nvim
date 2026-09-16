@@ -33,7 +33,7 @@ Add this to `lua/plugins/strict-ime.lua`:
 return {
   {
     "vvinnpy/strict-ime.nvim",
-    event = { "ModeChanged", "VeryLazy" },
+    lazy = false,
     opts = {
       english = "keyboard-us",
       insert = "pinyin",
@@ -47,7 +47,7 @@ return {
 }
 ```
 
-Replace `pysan3/fcitx5.nvim` if it is present. Do not run both plugins with their own `ModeChanged` autocmds enabled.
+Replace `pysan3/fcitx5.nvim` if it is present. Do not run both plugins with their own `ModeChanged` autocmds enabled. Omarchy ships LazyVim but does not include `pysan3/fcitx5.nvim` by default.
 
 ## Configuration
 

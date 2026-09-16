@@ -55,8 +55,26 @@ Replace `pysan3/fcitx5.nvim` if it is present. Do not run both plugins with thei
 require("strict-ime").setup({
   english = "keyboard-us",
   insert = "pinyin",
+  imname = {
+    norm = "keyboard-us",
+    ins = "pinyin",
+    cmd = "keyboard-us",
+    vis = "keyboard-us",
+    sel = "keyboard-us",
+    opr = "keyboard-us",
+    term = nil,
+    lang = nil,
+  },
+  strict_modes = {
+    norm = true,
+    opr = true,
+    vis = true,
+    sel = true,
+    cmd = true,
+  },
+  remember_prior = true,
+  autostart_fcitx5 = true,
   poll_interval = 200,
-  auto_start = true,
   helper = {
     enabled = true,
     path = nil,
@@ -65,8 +83,13 @@ require("strict-ime").setup({
 })
 ```
 
-- `english`: input method to use in strict modes.
-- `insert`: input method to use when entering Insert mode.
+- `english`: fallback English input method.
+- `insert`: fallback input method for Insert mode.
+- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model.
+- `strict_modes`: modes where manual switching is forced back to English.
+- `remember_prior`: remember the input method used in each mode.
+- `autostart_fcitx5`: start Fcitx5 if it is not already running.
+- `legacy_commands`: expose `Fcitx5*` compatibility commands.
 - `poll_interval`: D-Bus status check interval, in milliseconds.
 - `helper.enabled`: use the persistent helper when available.
 - `helper.path`: optional explicit helper path.
@@ -75,7 +98,21 @@ require("strict-ime").setup({
 
 - `:StrictImeInstallHelper` downloads the matching Linux helper from the latest GitHub Release.
 - `:StrictImeRestart` restarts the helper and reloads mode state.
-- `:StrictImeStatus` shows the current mode, helper state, and fallback state.
+- `:StrictImeStatus` shows the current mode, helper state, and strict state.
+- `:StrictImeSetName <imname>` forces an input method for the current mode.
+- `:StrictImeGeneious` reapplies the current mode configuration.
+- `:StrictImeOnModeChanged` compatibility entry point for `ModeChanged`.
+- `:StrictImeSetPrior <imname> [mode]` sets the remembered input method.
+- `:StrictImeGetImname [mode]` prints the input method for a mode.
+- `:StrictImeGetImnames` prints all mode input methods.
+
+When `legacy_commands` is enabled, the following aliases are also available:
+`Fcitx5`, `Fcitx5SetName`, `Fcitx5Geneious`, `Fcitx5OnModeChanged`,
+`Fcitx5SetPrior`, `Fcitx5GetImname`, and `Fcitx5GetImnames`.
+
+## Compatibility
+
+Existing configurations that call `require("fcitx5").setup({...})` can keep that API while using this repository. The compatibility module maps the old setup options and `Fcitx5*` functions to `strict-ime`.
 
 ## Performance
 

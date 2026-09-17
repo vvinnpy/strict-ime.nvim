@@ -197,7 +197,7 @@ local function setup_commands()
 
   local function cmd_get_imnames()
     local result = {}
-    for _, key in ipairs({ "norm", "ins", "cmd", "vis", "sel", "opr", "term", "lang" }) do
+    for _, key in ipairs({ "norm", "ins", "cmd", "search", "vis", "sel", "opr", "term", "lang" }) do
       result[key] = target_imname(key)
     end
     notify(vim.inspect(result))
@@ -257,7 +257,7 @@ end
 
 M.Fcitx5GetImnames = function()
   local result = {}
-  for _, key in ipairs({ "norm", "ins", "cmd", "vis", "sel", "opr", "term", "lang" }) do
+  for _, key in ipairs({ "norm", "ins", "cmd", "search", "vis", "sel", "opr", "term", "lang" }) do
     result[key] = target_imname(key)
   end
   return result

@@ -1,12 +1,13 @@
 # strict-ime.nvim
 
-A Neovim plugin for Linux + Fcitx5 that keeps Normal/Visual/Select/Operator-pending modes in English and switches back to your configured input method when entering Insert mode.
+A Neovim plugin for Linux + Fcitx5 that keeps Normal/Visual/Select/Operator-pending modes in English and switches back to your configured input method when entering Insert mode or command-line modes (`:`, `/`, `?`).
 
 It is designed to work on Omarchy and standard Arch installations without depending on `pysan3/fcitx5.nvim`.
 
 ## Features
 
 - Works with terminal Neovim and GUI Neovim clients.
+- Treats `/`, `?`, and `:` command lines as text input and remembers their input method state independently.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
 - Falls back to `fcitx5-remote` if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
@@ -58,7 +59,8 @@ require("strict-ime").setup({
   imname = {
     norm = "keyboard-us",
     ins = "pinyin",
-    cmd = "keyboard-us",
+    cmd = "pinyin",
+    search = "pinyin",
     vis = "keyboard-us",
     sel = "keyboard-us",
     opr = "keyboard-us",
@@ -70,7 +72,8 @@ require("strict-ime").setup({
     opr = true,
     vis = true,
     sel = true,
-    cmd = true,
+    cmd = false,
+    search = false,
   },
   remember_prior = true,
   autostart_fcitx5 = true,
@@ -85,8 +88,8 @@ require("strict-ime").setup({
 
 - `english`: fallback English input method.
 - `insert`: fallback input method for Insert mode.
-- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model.
-- `strict_modes`: modes where manual switching is forced back to English.
+- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` covers `:` commands, `search` covers `/` and `?` searches, and both default to `insert`.
+- `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` default to `false`.
 - `remember_prior`: remember both the input method name and its active/inactive state for each mode.
 - `autostart_fcitx5`: start Fcitx5 if it is not already running.
 - `legacy_commands`: expose `Fcitx5*` compatibility commands.

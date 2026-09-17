@@ -43,6 +43,12 @@ local mode_map = {
 
 function M.key(mode)
   local code = mode or vim.api.nvim_get_mode().mode
+  if code == "c" then
+    local cmdtype = vim.fn.getcmdtype()
+    if cmdtype == "/" or cmdtype == "?" then
+      return "search"
+    end
+  end
   return mode_map[code] or "norm"
 end
 

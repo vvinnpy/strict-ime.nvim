@@ -7,7 +7,7 @@ It is designed to work on Omarchy and standard Arch installations without depend
 ## Features
 
 - Works with terminal Neovim and GUI Neovim clients.
-- Treats `/`, `?`, and `:` command lines as text input and remembers their input method state independently.
+- Treats `/`, `?`, and `:` command lines as text input. They start with their configured (`cmd`/`search`) input method, defaulting to English, then remember manual switches independently.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
 - Falls back to `fcitx5-remote` if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
@@ -59,8 +59,8 @@ require("strict-ime").setup({
   imname = {
     norm = "keyboard-us",
     ins = "pinyin",
-    cmd = "pinyin",
-    search = "pinyin",
+    cmd = "keyboard-us",
+    search = "keyboard-us",
     vis = "keyboard-us",
     sel = "keyboard-us",
     opr = "keyboard-us",
@@ -88,7 +88,7 @@ require("strict-ime").setup({
 
 - `english`: fallback English input method.
 - `insert`: fallback input method for Insert mode.
-- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` covers `:` commands, `search` covers `/` and `?` searches, and both default to `insert`.
+- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` covers `:` commands, `search` covers `/` and `?` searches, and both default to `english`.
 - `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` default to `false`.
 - `remember_prior`: remember both the input method name and its active/inactive state for each mode.
 - `autostart_fcitx5`: start Fcitx5 if it is not already running.

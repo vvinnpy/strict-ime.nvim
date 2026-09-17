@@ -40,19 +40,13 @@ M.values = vim.deepcopy(M.defaults)
 local function normalize(values)
   values.imname = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults.imname), values.imname or {})
 
-  for _, key in ipairs({ "norm", "vis", "sel", "opr", "lang" }) do
+  for _, key in ipairs({ "norm", "cmd", "search", "vis", "sel", "opr", "lang" }) do
     if values.imname[key] == nil then
       values.imname[key] = values.english
     end
   end
   if values.imname.ins == nil then
     values.imname.ins = values.insert
-  end
-  if values.imname.cmd == nil then
-    values.imname.cmd = values.imname.ins
-  end
-  if values.imname.search == nil then
-    values.imname.search = values.imname.ins
   end
 
   return values

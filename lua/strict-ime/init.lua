@@ -62,6 +62,10 @@ local function is_strict(mode_key)
   return config.values.strict_modes[mode_key] == true
 end
 
+local function is_unmanaged_cmdline(mode_key)
+  return not config.values.manage_cmdline and (mode_key == "cmd" or mode_key == "search")
+end
+
 local function target_state(mode_key)
   if is_strict(mode_key) then
     return { imname = config.values.english, active = false }
@@ -104,7 +108,24 @@ local function sync_mode(force)
     return
   end
 
-  if config.values.remember_prior and previous_key and previous_key ~= mode_key then
+  if is_unmanaged_cmdline(mode_key) then
+    if previous_strict ~= false then
+      if helper.active() then
+        helper.set_strict(false)
+      else
+        fallback.set_strict(false)
+      end
+      previous_strict = false
+    end
+    previous_key = mode_key
+    return
+  end
+
+  if config.values.remember_prior
+    and previous_key
+    and previous_key ~= mode_key
+    and not is_unmanaged_cmdline(previous_key)
+  then
     local previous_state = current_input_state()
     if previous_state then
       prior[previous_key] = previous_state

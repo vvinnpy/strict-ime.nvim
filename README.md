@@ -1,13 +1,13 @@
 # strict-ime.nvim
 
-A Neovim plugin for Linux + Fcitx5 that keeps Normal/Visual/Select/Operator-pending modes in English and switches back to your configured input method when entering Insert mode or command-line modes (`:`, `/`, `?`).
+A Neovim plugin for Linux + Fcitx5 that keeps Normal/Visual/Select/Operator-pending modes in English and switches back to your configured input method when entering Insert mode. Command-line modes are left unmanaged by default.
 
 It is designed to work on Omarchy and standard Arch installations without depending on `pysan3/fcitx5.nvim`.
 
 ## Features
 
 - Works with terminal Neovim and GUI Neovim clients.
-- Treats `/`, `?`, and `:` command lines as text input. They start with their configured (`cmd`/`search`) input method, defaulting to English, then remember manual switches independently.
+- Leaves `/`, `?`, and `:` command-line modes unmanaged by default: no polling and no input method changes.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
 - Falls back to `fcitx5-remote` if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
@@ -75,6 +75,7 @@ require("strict-ime").setup({
     cmd = false,
     search = false,
   },
+  manage_cmdline = false,
   remember_prior = true,
   autostart_fcitx5 = true,
   poll_interval = 200,
@@ -88,9 +89,10 @@ require("strict-ime").setup({
 
 - `english`: fallback English input method.
 - `insert`: fallback input method for Insert mode.
-- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` covers `:` commands, `search` covers `/` and `?` searches, and both default to `english`.
-- `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` default to `false`.
-- `remember_prior`: remember both the input method name and its active/inactive state for each mode.
+- `manage_cmdline`: when `false`, `cmd` (`:`) and `search` (`/`, `?`) are fully ignored by the plugin. Set to `true` to manage their input methods and remembered state.
+- `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` and `search` are only used when `manage_cmdline = true`.
+- `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` are ignored when `manage_cmdline = false`.
+- `remember_prior`: remember both the input method name and its active/inactive state for each managed mode.
 - `autostart_fcitx5`: start Fcitx5 if it is not already running.
 - `legacy_commands`: expose `Fcitx5*` compatibility commands.
 - `poll_interval`: D-Bus status check interval, in milliseconds.

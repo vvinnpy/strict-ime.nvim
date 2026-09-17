@@ -22,6 +22,7 @@ M.defaults = {
     cmd = false,
     search = false,
   },
+  manage_cmdline = false,
   remember_prior = true,
   autostart_fcitx5 = true,
   define_autocmd = true,

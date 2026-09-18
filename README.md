@@ -76,6 +76,7 @@ require("strict-ime").setup({
     search = false,
   },
   manage_cmdline = false,
+  tmux_focus_events = false,
   remember_prior = true,
   autostart_fcitx5 = true,
   poll_interval = 200,
@@ -90,6 +91,7 @@ require("strict-ime").setup({
 - `english`: fallback English input method.
 - `insert`: fallback input method for Insert mode.
 - `manage_cmdline`: when `false`, `cmd` (`:`) and `search` (`/`, `?`) are fully ignored by the plugin. Set to `true` to manage their input methods and remembered state.
+- `tmux_focus_events`: set to `true` to let the plugin enable tmux `focus-events`. The tmux client must be detached and reattached before strict mode starts working.
 - `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` and `search` are only used when `manage_cmdline = true`.
 - `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` are ignored when `manage_cmdline = false`.
 - `remember_prior`: remember both the input method name and its active/inactive state for each managed mode.
@@ -121,7 +123,7 @@ Existing configurations that call `require("fcitx5").setup({...})` can keep that
 
 ## Focus handling
 
-The plugin pauses strict enforcement when Neovim loses focus, so Fcitx remains available to other applications. Focus events require terminal focus reporting; in tmux, use `set -g focus-events on`.
+The plugin pauses strict enforcement when Neovim loses focus, so Fcitx remains available to other applications. If tmux `focus-events` is off, strict mode is disabled with a warning because otherwise it could affect other applications. Enable it permanently with `set -g focus-events on` in `~/.tmux.conf`, or set `tmux_focus_events = true` to let the plugin enable it for the current tmux server. Changing it at runtime requires detaching and reattaching the tmux client.
 
 ## Performance
 

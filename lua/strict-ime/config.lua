@@ -23,6 +23,7 @@ M.defaults = {
     search = false,
   },
   manage_cmdline = false,
+  tmux_focus_events = false,
   remember_prior = true,
   autostart_fcitx5 = true,
   define_autocmd = true,

@@ -12,6 +12,7 @@ local focused = true
 local previous_key
 local previous_strict
 local prior = {}
+local tmux_focus_ready = true
 
 local function notify(message, level)
   vim.notify("strict-ime: " .. message, level or vim.log.levels.INFO)
@@ -58,8 +59,33 @@ local function ensure_fcitx5()
   end
 end
 
+local function ensure_tmux_focus_events()
+  if not vim.env.TMUX or vim.env.TMUX == "" then
+    return
+  end
+
+  local result = vim.system({ "tmux", "show-options", "-gv", "focus-events" }, { text = true }):wait()
+  if result.code == 0 and vim.trim(result.stdout or "") == "on" then
+    return
+  end
+
+  tmux_focus_ready = false
+  if config.values.tmux_focus_events and result.code == 0 then
+    local set_result = vim.system({ "tmux", "set-option", "-g", "focus-events", "on" }, { text = true }):wait()
+    if set_result.code == 0 then
+      notify("enabled tmux focus-events; detach and reattach tmux before strict mode is enabled", vim.log.levels.WARN)
+      return
+    end
+  end
+
+  notify(
+    "tmux focus-events is off; strict mode is disabled to avoid affecting other applications",
+    vim.log.levels.WARN
+  )
+end
+
 local function is_strict(mode_key)
-  return config.values.strict_modes[mode_key] == true
+  return tmux_focus_ready and config.values.strict_modes[mode_key] == true
 end
 
 local function is_unmanaged_cmdline(mode_key)
@@ -286,6 +312,8 @@ end
 
 function M.setup(opts)
   config.setup(opts)
+  tmux_focus_ready = true
+  ensure_tmux_focus_events()
   prior = {}
   previous_key = nil
   previous_strict = nil

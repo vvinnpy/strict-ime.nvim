@@ -123,6 +123,15 @@ local function set_imname(imname, force)
   set_input_state({ imname = imname, active = true }, force)
 end
 
+local function pause_strict()
+  if helper.active() then
+    helper.set_strict(false)
+  else
+    fallback.set_strict(false)
+  end
+  previous_strict = false
+end
+
 local function sync_mode(force)
   if not started or not focused then
     return
@@ -338,15 +347,32 @@ function M.setup(opts)
     group = group,
     callback = function()
       focused = false
-      if helper.active() then
-        helper.set_strict(false)
-      else
-        fallback.set_strict(false)
-      end
-      previous_strict = false
+      pause_strict()
     end,
   })
   vim.api.nvim_create_autocmd("FocusGained", {
+    group = group,
+    callback = function()
+      focused = true
+      vim.schedule(function()
+        sync_mode(true)
+      end)
+    end,
+  })
+  vim.api.nvim_create_autocmd("CmdlineEnter", {
+    group = group,
+    callback = function()
+      sync_mode(false)
+    end,
+  })
+  vim.api.nvim_create_autocmd("VimSuspend", {
+    group = group,
+    callback = function()
+      focused = false
+      pause_strict()
+    end,
+  })
+  vim.api.nvim_create_autocmd("VimResume", {
     group = group,
     callback = function()
       focused = true

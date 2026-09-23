@@ -8,8 +8,10 @@ local mode_map = {
   niI = "norm",
   niR = "norm",
   niV = "norm",
-  nt = "norm",
-  ntT = "norm",
+  -- Terminal-Normal keeps the terminal job alive; input methods belong to the
+  -- terminal application (tig, less, etc.), not to Neovim normal mode.
+  nt = "term",
+  ntT = "term",
   rm = "norm",
   ["r?"] = "norm",
 

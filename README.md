@@ -8,6 +8,7 @@ It is designed to work on Omarchy and standard Arch installations without depend
 
 - Works with terminal Neovim and GUI Neovim clients.
 - Leaves `/`, `?`, and `:` command-line modes unmanaged by default: no polling and no input method changes.
+- Leaves terminal modes unmanaged, including Terminal-Normal, so full-screen terminal apps such as `tig` keep their own input-method state.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
 - Falls back to `fcitx5-remote` if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
@@ -123,7 +124,7 @@ Existing configurations that call `require("fcitx5").setup({...})` can keep that
 
 ## Focus handling
 
-The plugin pauses strict enforcement when Neovim loses focus, so Fcitx remains available to other applications. If tmux `focus-events` is off, strict mode is disabled with a warning because otherwise it could affect other applications. Enable it permanently with `set -g focus-events on` in `~/.tmux.conf`, or set `tmux_focus_events = true` to let the plugin enable it for the current tmux server. Changing it at runtime requires detaching and reattaching the tmux client.
+The plugin pauses strict enforcement when Neovim loses focus or is suspended with `Ctrl-Z`, so Fcitx remains available to other applications. If tmux `focus-events` is off, strict mode is disabled with a warning because otherwise it could affect other applications. Enable it permanently with `set -g focus-events on` in `~/.tmux.conf`, or set `tmux_focus_events = true` to let the plugin enable it for the current tmux server. Changing it at runtime requires detaching and reattaching the tmux client.
 
 ## Performance
 

@@ -27,10 +27,10 @@ local function version_at_least(actual, expected)
   return true
 end
 
-local function read_ascii_mode()
+local function run_dbus(method, value)
   local result
   if vim.fn.executable("gdbus") == 1 then
-    result = vim.system({
+    local cmd = {
       "gdbus",
       "call",
       "--session",
@@ -39,23 +39,29 @@ local function read_ascii_mode()
       "--object-path",
       OBJECT_PATH,
       "--method",
-      INTERFACE .. ".IsAsciiMode",
-    }, { text = true }):wait()
+      INTERFACE .. "." .. method,
+    }
+    if value ~= nil then
+      table.insert(cmd, value and "true" or "false")
+    end
+    result = vim.system(cmd, { text = true }):wait()
   elseif vim.fn.executable("busctl") == 1 then
-    result = vim.system({
-      "busctl",
-      "--user",
-      "call",
-      BUS_NAME,
-      OBJECT_PATH,
-      INTERFACE,
-      "IsAsciiMode",
-    }, { text = true }):wait()
+    local cmd = { "busctl", "--user", "call", BUS_NAME, OBJECT_PATH, INTERFACE, method }
+    if value ~= nil then
+      table.insert(cmd, "b")
+      table.insert(cmd, value and "true" or "false")
+    end
+    result = vim.system(cmd, { text = true }):wait()
   else
     return nil
   end
 
-  if result.code ~= 0 then
+  return result
+end
+
+local function read_ascii_mode()
+  local result = run_dbus("IsAsciiMode")
+  if not result or result.code ~= 0 then
     return nil
   end
 
@@ -67,6 +73,11 @@ local function read_ascii_mode()
     return false
   end
   return nil
+end
+
+function M.set_ascii(value)
+  local result = run_dbus("SetAsciiMode", value)
+  return result ~= nil and result.code == 0
 end
 
 function M.helper_supported()
@@ -123,6 +134,13 @@ function M.decode_state(imname)
     return nil
   end
   return { imname = imname, active = not ascii }
+end
+
+function M.restore_chinese()
+  if config.values.rime_native == false or config.values.imname.ins ~= "rime" then
+    return
+  end
+  M.set_ascii(false)
 end
 
 function M.reset()

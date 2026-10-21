@@ -402,6 +402,7 @@ function M.setup(opts)
     callback = function()
       shutting_down = true
       focused = false
+      rime.restore_chinese()
       helper.stop()
       fallback.stop()
     end,
@@ -424,6 +425,7 @@ end
 function M.disable()
   started = false
   focused = false
+  rime.restore_chinese()
   helper.stop()
   fallback.stop()
 end

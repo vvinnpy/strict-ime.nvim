@@ -8,6 +8,7 @@ local stdin, stdout, stderr
 local handle
 local active = false
 local last_strict = nil
+local last_rime_strict = nil
 local last_input_key = nil
 
 local function helper_path()
@@ -30,6 +31,10 @@ local function helper_path()
   end
 
   return nil
+end
+
+function M.path()
+  return helper_path()
 end
 
 local function write(payload)
@@ -83,6 +88,7 @@ function M.start()
   handle = spawn_handle
   active = true
   last_strict = nil
+  last_rime_strict = nil
   last_input_key = nil
   return true
 end
@@ -100,6 +106,7 @@ function M.stop()
   handle = nil
   close_pipes()
   last_strict = nil
+  last_rime_strict = nil
   last_input_key = nil
 end
 
@@ -112,7 +119,17 @@ function M.set_strict(strict)
     return
   end
   last_strict = strict
+  last_rime_strict = nil
   write({ cmd = "set_strict", value = strict })
+end
+
+function M.set_rime_strict(strict)
+  if last_rime_strict == strict and active then
+    return
+  end
+  last_rime_strict = strict
+  last_strict = nil
+  write({ cmd = "set_rime_strict", value = strict })
 end
 
 local function normalize_state(state)
@@ -120,6 +137,7 @@ local function normalize_state(state)
     return {
       imname = state.imname,
       active = state.active ~= false,
+      ascii = state.ascii,
     }
   end
   return { imname = state, active = true }
@@ -131,7 +149,7 @@ function M.set_input(state, force)
     return
   end
 
-  local key = state.imname .. ":" .. tostring(state.active)
+  local key = state.imname .. ":" .. tostring(state.active) .. ":" .. tostring(state.ascii)
   if not force and last_input_key == key then
     return
   end

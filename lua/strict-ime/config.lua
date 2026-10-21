@@ -25,6 +25,7 @@ M.defaults = {
   manage_cmdline = false,
   tmux_focus_events = false,
   remember_prior = true,
+  rime_native = "auto",
   autostart_fcitx5 = true,
   define_autocmd = true,
   legacy_commands = true,

@@ -5,6 +5,7 @@ local helper = require("strict-ime.helper")
 local fallback = require("strict-ime.fallback")
 local mode = require("strict-ime.mode")
 local install = require("strict-ime.install")
+local rime = require("strict-ime.rime")
 
 local started = false
 local shutting_down = false
@@ -33,6 +34,13 @@ local function current_input_state()
     return nil
   end
 
+  if rime.native_enabled() then
+    local decoded = rime.decode_state(imname)
+    if decoded then
+      return decoded
+    end
+  end
+
   local result = vim.system({ "fcitx5-remote" }, { text = true }):wait()
   local active_state = result.code == 0 and vim.trim(result.stdout or "") == "2"
   return { imname = imname, active = active_state }
@@ -43,6 +51,7 @@ local function normalize_state(state)
     return {
       imname = state.imname,
       active = state.active ~= false,
+      ascii = state.ascii,
     }
   end
   return { imname = state, active = true }
@@ -94,6 +103,9 @@ end
 
 local function target_state(mode_key)
   if is_strict(mode_key) then
+    if rime.native_enabled() then
+      return { imname = "rime", active = false }
+    end
     return { imname = config.values.english, active = false }
   end
   if config.values.remember_prior and prior[mode_key] then
@@ -106,10 +118,23 @@ local function target_imname(mode_key)
   return target_state(mode_key).imname
 end
 
+local function apply_strict(strict)
+  if rime.native_enabled() then
+    helper.set_rime_strict(strict)
+  elseif helper.active() then
+    helper.set_strict(strict)
+  else
+    fallback.set_strict(strict)
+  end
+end
+
 local function set_input_state(state, force)
   state = normalize_state(state)
   if not state.imname then
     return
+  end
+  if rime.native_enabled() and state.imname == "rime" then
+    state = rime.encode_state(state)
   end
 
   if helper.active() then
@@ -124,11 +149,7 @@ local function set_imname(imname, force)
 end
 
 local function pause_strict()
-  if helper.active() then
-    helper.set_strict(false)
-  else
-    fallback.set_strict(false)
-  end
+  apply_strict(false)
   previous_strict = false
 end
 
@@ -145,11 +166,7 @@ local function sync_mode(force)
 
   if is_unmanaged_cmdline(mode_key) then
     if previous_strict ~= false then
-      if helper.active() then
-        helper.set_strict(false)
-      else
-        fallback.set_strict(false)
-      end
+      apply_strict(false)
       previous_strict = false
     end
     previous_key = mode_key
@@ -171,11 +188,7 @@ local function sync_mode(force)
   local strict = is_strict(mode_key)
 
   if strict ~= previous_strict then
-    if helper.active() then
-      helper.set_strict(strict)
-    else
-      fallback.set_strict(strict)
-    end
+    apply_strict(strict)
     previous_strict = strict
   elseif strict and not helper.active() then
     fallback.set_strict(true)
@@ -194,10 +207,11 @@ end
 local function restart_helper()
   ensure_fcitx5()
   helper.stop()
+  rime.reset()
   if helper.start() then
     fallback.stop()
     previous_strict = nil
-    helper.set_strict(is_strict(previous_key or mode.key()))
+    apply_strict(is_strict(previous_key or mode.key()))
   else
     fallback.set_strict(is_strict(previous_key or mode.key()))
   end
@@ -214,11 +228,12 @@ local function setup_commands()
   local function cmd_status()
     local current = mode.current()
     notify(string.format(
-      "mode=%s key=%s helper=%s strict=%s",
+      "mode=%s key=%s helper=%s strict=%s rime_native=%s",
       current.mode,
       current.key,
       tostring(helper.active()),
-      tostring(previous_strict)
+      tostring(previous_strict),
+      tostring(rime.native_enabled())
     ))
   end
 
@@ -321,6 +336,7 @@ end
 
 function M.setup(opts)
   config.setup(opts)
+  rime.reset()
   tmux_focus_ready = true
   ensure_tmux_focus_events()
   prior = {}

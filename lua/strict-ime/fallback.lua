@@ -31,6 +31,7 @@ local function normalize_state(state)
     return {
       imname = state.imname,
       active = state.active ~= false,
+      ascii = state.ascii,
     }
   end
   return { imname = state, active = true }

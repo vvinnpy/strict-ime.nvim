@@ -2,7 +2,7 @@
 
 A Neovim plugin for Linux + Fcitx5 that keeps Normal/Visual/Select/Operator-pending modes in English and switches back to your configured input method when entering Insert mode. Command-line modes are left unmanaged by default.
 
-Rime (`fcitx5-rime`) is supported natively: when the Insert input method is `rime`, strict modes use Rime's own ASCII mode instead of switching the Fcitx5 input method. This preserves the active Rime schema, candidate state, and user dictionary context.
+Rime (`fcitx5-rime`) is supported as a normal Fcitx5 input method. The plugin changes only Neovim's Fcitx input state; other applications keep their own input method. This relies on Fcitx5's `ShareInputState=No` setting, which is the default in the recommended configuration.
 
 It is designed to work on Omarchy and standard Arch installations without depending on `pysan3/fcitx5.nvim`.
 
@@ -12,8 +12,7 @@ It is designed to work on Omarchy and standard Arch installations without depend
 - Leaves `/`, `?`, and `:` command-line modes unmanaged by default: no polling and no input method changes.
 - Leaves terminal modes unmanaged, including Terminal-Normal, so full-screen terminal apps such as `tig` keep their own input-method state.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
-- Uses Rime's `ascii_mode` D-Bus API when `insert = "rime"`, avoiding engine switches in Normal mode.
-- Restores Rime Chinese mode when Neovim loses focus, is suspended, or exits, so other applications are not left in ASCII mode.
+- Supports `fcitx5-rime` without touching other applications' input state.
 - Falls back to `fcitx5-remote` and Fcitx5 activation/deactivation if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
 - Does not depend on a particular Neovim configuration or plugin manager.
@@ -23,7 +22,6 @@ It is designed to work on Omarchy and standard Arch installations without depend
 - Linux
 - Fcitx5
 - `fcitx5-remote` on `PATH` for the fallback mode
-- `gdbus` or `busctl` (recommended) for reading Rime ASCII state
 - Neovim 0.9 or newer for `vim.system`/`vim.uv` support
 
 On Omarchy, Fcitx5 is already installed. Install a Chinese engine separately, for example Rime:
@@ -90,7 +88,7 @@ require("strict-ime").setup({
   manage_cmdline = false,
   tmux_focus_events = false,
   remember_prior = true,
-  rime_native = "auto",
+  rime_native = false,
   autostart_fcitx5 = true,
   poll_interval = 200,
   helper = {
@@ -107,8 +105,8 @@ require("strict-ime").setup({
 - `tmux_focus_events`: set to `true` to let the plugin enable tmux `focus-events`. The tmux client must be detached and reattached before strict mode starts working.
 - `imname`: per-mode input method, compatible with the old `fcitx5.nvim` model. `cmd` and `search` are only used when `manage_cmdline = true`.
 - `strict_modes`: modes where manual switching is forced back to English. `cmd` and `search` are ignored when `manage_cmdline = false`.
-- `remember_prior`: remember both the input method name and its active/inactive state for each managed mode. With native Rime support, the active state maps to Rime's `ascii_mode`.
-- `rime_native`: `"auto"` enables Rime's ASCII mode when `insert` is `rime`; set to `false` to force the old Fcitx5 activation/deactivation behavior.
+- `remember_prior`: remember both the input method name and its active/inactive state for each managed mode.
+- `rime_native`: `false` (default) keeps Rime handling per-application through Fcitx5. `"auto"` enables experimental native Rime ASCII switching, which may change Rime state in other applications and is not recommended if the plugin must stay confined to Neovim.
 - `autostart_fcitx5`: start Fcitx5 if it is not already running.
 - `legacy_commands`: expose `Fcitx5*` compatibility commands.
 - `poll_interval`: D-Bus status check interval, in milliseconds.
@@ -133,32 +131,26 @@ When `legacy_commands` is enabled, the following aliases are also available:
 
 ## Rime
 
-Native Rime support is selected automatically when the Insert input method is `rime`:
+Use Rime as the Insert input method with the default per-application behavior:
 
 ```lua
 opts = {
   english = "keyboard-us",
   insert = "rime",
-  rime_native = "auto",
+  rime_native = false,
 }
 ```
 
-With the persistent helper installed, the plugin:
+Fcitx5 must use per-application input state. Check `~/.config/fcitx5/config`:
 
-- keeps Fcitx5 on the `rime` input method in strict modes;
-- enables Rime `ascii_mode` for Normal/Visual/Select/Operator-pending modes;
-- disables `ascii_mode` when entering Insert mode unless a remembered Insert state says otherwise;
-- restores Chinese `ascii_mode = false` when Neovim loses focus, is suspended, or exits;
-- leaves Rime schema selection untouched.
-
-This uses the `org.fcitx.Fcitx.Rime1` interface at `/rime`. If the helper is older than 0.6.0, the plugin falls back to the original behavior of activating/deactivating input methods through Fcitx5. `gdbus` or `busctl` is used to remember whether Rime was manually switched to ASCII in Insert mode; without either command, strict-mode switching still works but that remembered state is not preserved. Update the helper with:
-
-```vim
-:StrictImeInstallHelper
-:StrictImeRestart
+```ini
+[Behavior]
+ShareInputState=No
 ```
 
-`english` is still used for non-Rime engines and as the fallback when native Rime support is unavailable.
+With this configuration, Normal/Visual/Select/Operator-pending modes deactivate input in Neovim, Insert mode activates Rime, and switching to another application restores that application's own input state. The plugin does not send Chinese/English changes to other applications.
+
+Native Rime ASCII switching (`rime_native = "auto"`) is experimental: the Rime ASCII state may be shared outside Neovim, so it is not recommended when other applications must keep their own state.
 
 ## Compatibility
 
@@ -170,7 +162,7 @@ The plugin pauses strict enforcement when Neovim loses focus or is suspended wit
 
 ## Performance
 
-The helper maintains one Fcitx5 D-Bus connection and checks `State()` only while strict mode is active. With Rime, it checks `IsAsciiMode()` and reapplies `SetAsciiMode(true)` only when needed. It does not spawn a process on every poll.
+The helper maintains one Fcitx5 D-Bus connection and checks `State()` only while strict mode is active. It does not spawn a process on every poll.
 
 The Lua fallback starts only when the helper is unavailable. It uses `fcitx5-remote` and therefore spawns a process at the configured interval while strict mode is active.
 

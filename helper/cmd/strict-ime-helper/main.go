@@ -18,7 +18,7 @@ const (
 	iface      = "org.fcitx.Fcitx.Controller1"
 	rimePath   = dbus.ObjectPath("/rime")
 	rimeIface  = "org.fcitx.Fcitx.Rime1"
-	version    = "0.6.2"
+	version    = "0.6.3"
 )
 
 type request struct {

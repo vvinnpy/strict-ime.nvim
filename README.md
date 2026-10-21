@@ -13,6 +13,7 @@ It is designed to work on Omarchy and standard Arch installations without depend
 - Leaves terminal modes unmanaged, including Terminal-Normal, so full-screen terminal apps such as `tig` keep their own input-method state.
 - Uses Fcitx5 D-Bus through a persistent helper process when available.
 - Uses Rime's `ascii_mode` D-Bus API when `insert = "rime"`, avoiding engine switches in Normal mode.
+- Restores Rime Chinese mode when Neovim loses focus, is suspended, or exits, so other applications are not left in ASCII mode.
 - Falls back to `fcitx5-remote` and Fcitx5 activation/deactivation if the helper is not installed.
 - Can be loaded with `lazy.nvim` through a single plugin specification.
 - Does not depend on a particular Neovim configuration or plugin manager.
@@ -147,6 +148,7 @@ With the persistent helper installed, the plugin:
 - keeps Fcitx5 on the `rime` input method in strict modes;
 - enables Rime `ascii_mode` for Normal/Visual/Select/Operator-pending modes;
 - disables `ascii_mode` when entering Insert mode unless a remembered Insert state says otherwise;
+- restores Chinese `ascii_mode = false` when Neovim loses focus, is suspended, or exits;
 - leaves Rime schema selection untouched.
 
 This uses the `org.fcitx.Fcitx.Rime1` interface at `/rime`. If the helper is older than 0.6.0, the plugin falls back to the original behavior of activating/deactivating input methods through Fcitx5. `gdbus` or `busctl` is used to remember whether Rime was manually switched to ASCII in Insert mode; without either command, strict-mode switching still works but that remembered state is not preserved. Update the helper with:

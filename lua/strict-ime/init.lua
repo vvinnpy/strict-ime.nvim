@@ -150,6 +150,13 @@ end
 
 local function pause_strict()
   apply_strict(false)
+  if helper.active() and rime.native_enabled() then
+    -- Queue this after set_rime_strict(false) so the helper has stopped
+    -- enforcing ASCII before Chinese mode is restored for the next window.
+    helper.set_input({ imname = "rime", active = true, ascii = false }, true)
+  else
+    rime.restore_chinese()
+  end
   previous_strict = false
 end
 
@@ -402,9 +409,9 @@ function M.setup(opts)
     callback = function()
       shutting_down = true
       focused = false
-      rime.restore_chinese()
       helper.stop()
       fallback.stop()
+      rime.restore_chinese()
     end,
   })
 
@@ -425,9 +432,9 @@ end
 function M.disable()
   started = false
   focused = false
-  rime.restore_chinese()
   helper.stop()
   fallback.stop()
+  rime.restore_chinese()
 end
 
 return M
